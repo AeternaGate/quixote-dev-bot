@@ -59,6 +59,11 @@ python -m pytest tests/ -v
 git config core.hooksPath .githooks
 ```
 
+## Деплой на Oracle Cloud (бесплатно)
+
+Пошаговая инструкция — [docs/deploy-oracle.md](docs/deploy-oracle.md).
+Кратко: VM Ubuntu → `git clone` → `.env` через scp → `docker compose up -d --build`.
+
 ## Линт
 
 ```bash
