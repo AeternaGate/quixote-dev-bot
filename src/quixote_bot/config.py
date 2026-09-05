@@ -11,6 +11,8 @@ class Settings:
     openrouter_model: str
     rate_limit: int
     rate_window: int
+    webhook_secret: str = ""
+    proxy_url: str = ""
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -37,4 +39,6 @@ class Settings:
             openrouter_model=model,
             rate_limit=limit,
             rate_window=window,
+            webhook_secret=os.getenv("TELEGRAM_WEBHOOK_SECRET", ""),
+            proxy_url=os.getenv("PROXY_URL", ""),
         )
