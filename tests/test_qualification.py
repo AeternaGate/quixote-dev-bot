@@ -1,6 +1,7 @@
 import json
 import unittest
 
+from src.quixote_bot.messages import QUALIFICATION_QUESTIONS, QUESTION_ORDER
 from src.quixote_bot.qualification import (
     SYSTEM_PROMPT,
     Analysis,
@@ -9,7 +10,6 @@ from src.quixote_bot.qualification import (
     get_next_question,
     should_ask_question,
 )
-from src.quixote_bot.messages import QUALIFICATION_QUESTIONS, QUESTION_ORDER
 
 
 def make_result(**changes):
@@ -93,6 +93,29 @@ class QualificationTests(unittest.TestCase):
     def test_system_prompt_contains_categories(self):
         for cat in ("готовое ТЗ", "потенциальный заказ", "спам"):
             self.assertIn(cat, SYSTEM_PROMPT)
+
+    def test_system_prompt_contains_few_shot_examples(self):
+        self.assertIn("Примеры классификации", SYSTEM_PROMPT)
+        self.assertIn("Хочу заказать лендинг", SYSTEM_PROMPT)
+
+    def test_from_json_tolerates_markdown_fence(self):
+        analysis = Analysis.from_json("```json\n" + make_result() + "\n```")
+        self.assertEqual(analysis.category, "потенциальный заказ")
+
+    def test_from_json_tolerates_surrounding_text(self):
+        analysis = Analysis.from_json("Вот анализ заявки:\n" + make_result() + "\nНадеюсь, помог.")
+        self.assertEqual(analysis.category, "потенциальный заказ")
+
+    def test_from_json_tolerates_null_fields(self):
+        raw = json.dumps({
+            "category": "потенциальный заказ", "ready": False, "question": None,
+            "summary": None, "urgency": None, "budget": None, "timeline": None,
+            "risks": None, "recommended_reply": None, "client_reply": None,
+        })
+        analysis = Analysis.from_json(raw)
+        self.assertEqual(analysis.category, "потенциальный заказ")
+        self.assertEqual(analysis.budget, "не определен")
+        self.assertEqual(analysis.risks, [])
 
     def test_client_reply_parsed(self):
         analysis = Analysis.from_json(make_result(client_reply="Привет!"))

@@ -15,18 +15,26 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         token = os.getenv("BOT_TOKEN", "")
-        key = os.getenv("OPENROUTER_API_KEY", "")
-        owner = os.getenv("OWNER_ID", "8278836846")
+        owner = os.getenv("OWNER_ID", "")
+        if not token:
+            raise ValueError(
+                "BOT_TOKEN is required. Set it in .env or environment variables."
+            )
+        if not owner.isdigit():
+            raise ValueError(
+                "OWNER_ID is required and must be a numeric Telegram user id. "
+                "Set it in .env or environment variables."
+            )
         db = os.getenv("DB_PATH", "data/bot.db")
-        model = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
-        limit = os.getenv("RATE_LIMIT", "10")
-        window = os.getenv("RATE_WINDOW", "300")
+        model = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
+        limit = int(os.getenv("RATE_LIMIT", "10"))
+        window = int(os.getenv("RATE_WINDOW", "300"))
         return cls(
             bot_token=token,
-            openrouter_api_key=key,
+            openrouter_api_key=os.getenv("OPENROUTER_API_KEY", ""),
             owner_id=int(owner),
             db_path=db,
             openrouter_model=model,
-            rate_limit=int(limit),
-            rate_window=int(window),
+            rate_limit=limit,
+            rate_window=window,
         )

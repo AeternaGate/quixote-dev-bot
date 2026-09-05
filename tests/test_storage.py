@@ -1,6 +1,5 @@
 import os
 import tempfile
-import time
 import unittest
 
 from src.quixote_bot.storage import Storage
@@ -44,6 +43,7 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(self.storage.is_blacklisted(999))
 
     def test_conversation_lifecycle(self):
+        self.storage.ensure_user(1, None)
         self.storage.upsert_conversation(1, "asking", 1)
         conv = self.storage.get_conversation(1)
         self.assertEqual(conv.step, "asking")
@@ -52,6 +52,7 @@ class StorageTests(unittest.TestCase):
         self.assertIsNone(self.storage.get_conversation(1))
 
     def test_save_message_and_unread(self):
+        self.storage.ensure_user(1, None)
         self.storage.save_message(1, "hello")
         unread = self.storage.get_unread()
         self.assertEqual(len(unread), 1)
@@ -60,6 +61,8 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(len(self.storage.get_unread()), 0)
 
     def test_category_counts(self):
+        for uid in (1, 2, 3):
+            self.storage.ensure_user(uid, None)
         self.storage.save_message(1, "msg1", "спам")
         self.storage.save_message(2, "msg2", "спам")
         self.storage.save_message(3, "msg3", "готовое ТЗ")

@@ -28,6 +28,7 @@ class ConversationState:
     step: str
     questions_asked: int
     started_at: float
+    context: str | None
 
 
 class Storage:
@@ -37,6 +38,7 @@ class Storage:
         self._conn = sqlite3.connect(db_path)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.execute("PRAGMA foreign_keys=ON")
         self._migrate()
 
     def _migrate(self) -> None:
@@ -61,6 +63,7 @@ class Storage:
                 step TEXT DEFAULT 'idle',
                 questions_asked INTEGER DEFAULT 0,
                 started_at REAL,
+                context TEXT,
                 FOREIGN KEY (user_id) REFERENCES users(user_id)
             );
             CREATE TABLE IF NOT EXISTS blacklist_log (
@@ -71,6 +74,12 @@ class Storage:
             );
         """)
         self._conn.commit()
+        # Migration for databases created before the context column existed.
+        try:
+            self._conn.execute("ALTER TABLE conversations ADD COLUMN context TEXT")
+            self._conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
     def ensure_user(self, user_id: int, username: str | None) -> None:
         self._conn.execute(
@@ -107,7 +116,8 @@ class Storage:
 
     def set_blacklisted(self, user_id: int, reason: str = "") -> None:
         self._conn.execute(
-            "INSERT OR REPLACE INTO users (user_id, is_blacklisted) VALUES (?, 1)",
+            "INSERT INTO users (user_id, is_blacklisted) VALUES (?, 1) "
+            "ON CONFLICT(user_id) DO UPDATE SET is_blacklisted = 1",
             (user_id,),
         )
         self._conn.execute(
@@ -125,9 +135,6 @@ class Storage:
         return cur.rowcount > 0
 
     def blacklist_add(self, user_id: int, reason: str = "") -> bool:
-        user = self.get_user(user_id)
-        if not user:
-            self.ensure_user(user_id, None)
         if self.is_blacklisted(user_id):
             return False
         self.set_blacklisted(user_id, reason)
@@ -136,9 +143,25 @@ class Storage:
     def blacklist_remove(self, user_id: int) -> bool:
         return self.remove_blacklisted(user_id)
 
+    def get_blacklist(self) -> list[tuple[int, str | None, str]]:
+        rows = self._conn.execute(
+            "SELECT u.user_id, u.username, "
+            "(SELECT bl.reason FROM blacklist_log bl WHERE bl.user_id = u.user_id "
+            " ORDER BY bl.created_at DESC LIMIT 1) AS reason "
+            "FROM users u WHERE u.is_blacklisted = 1 ORDER BY u.user_id"
+        ).fetchall()
+        return [(r["user_id"], r["username"], r["reason"] or "") for r in rows]
+
+    def get_broadcast_targets(self) -> list[int]:
+        rows = self._conn.execute(
+            "SELECT DISTINCT user_id FROM messages WHERE user_id NOT IN "
+            "(SELECT user_id FROM users WHERE is_blacklisted = 1)"
+        ).fetchall()
+        return [row["user_id"] for row in rows]
+
     def get_conversation(self, user_id: int) -> ConversationState | None:
         row = self._conn.execute(
-            "SELECT user_id, step, questions_asked, started_at FROM conversations WHERE user_id = ?",
+            "SELECT user_id, step, questions_asked, started_at, context FROM conversations WHERE user_id = ?",
             (user_id,),
         ).fetchone()
         if not row:
@@ -146,20 +169,25 @@ class Storage:
         return ConversationState(
             user_id=row["user_id"], step=row["step"],
             questions_asked=row["questions_asked"], started_at=row["started_at"],
+            context=row["context"],
         )
 
-    def upsert_conversation(self, user_id: int, step: str, questions_asked: int) -> None:
+    def upsert_conversation(
+        self, user_id: int, step: str, questions_asked: int, context: str | None = None
+    ) -> None:
         now = time.time()
         existing = self.get_conversation(user_id)
         if existing:
             self._conn.execute(
-                "UPDATE conversations SET step = ?, questions_asked = ? WHERE user_id = ?",
-                (step, questions_asked, user_id),
+                "UPDATE conversations SET step = ?, questions_asked = ?, "
+                "context = COALESCE(?, context), started_at = ? WHERE user_id = ?",
+                (step, questions_asked, context, now, user_id),
             )
         else:
             self._conn.execute(
-                "INSERT INTO conversations (user_id, step, questions_asked, started_at) VALUES (?, ?, ?, ?)",
-                (user_id, step, questions_asked, now),
+                "INSERT INTO conversations (user_id, step, questions_asked, started_at, context) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (user_id, step, questions_asked, now, context),
             )
         self._conn.commit()
 
@@ -197,7 +225,8 @@ class Storage:
 
     def get_category_counts(self) -> dict[str, int]:
         rows = self._conn.execute(
-            "SELECT category, COUNT(*) as cnt FROM messages WHERE category IS NOT NULL GROUP BY category ORDER BY cnt DESC",
+            "SELECT category, COUNT(*) as cnt FROM messages "
+            "WHERE category IS NOT NULL GROUP BY category ORDER BY cnt DESC",
         ).fetchall()
         return {r["category"]: r["cnt"] for r in rows}
 

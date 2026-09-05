@@ -1,5 +1,3 @@
-OWNER_ID = 8278836846
-
 CATEGORIES = {
     "готовое ТЗ",
     "потенциальный заказ",
@@ -15,6 +13,23 @@ LANG_OPTIONS = {
 }
 
 LANG_BUTTONS = {"ru": "Русский", "en": "English"}
+
+# First words (case-insensitive, punctuation ignored) that send the rest of the
+# message straight to the owner as a ready application, skipping AI and questions.
+FAST_TRACK_WORDS = {"заказ", "order"}
+
+PORTFOLIO_URL = "https://t.me/quixoted"
+
+SHORT_DESCRIPTIONS = {
+    "ru": (
+        "Quixote.Dev — сайты, боты, автоматизация с ИИ. "
+        "Портфолио: t.me/quixoted. Заявка: слово ЗАКАЗ."
+    ),
+    "en": (
+        "Quixote.Dev — websites, bots, AI automation. "
+        "Portfolio: t.me/quixoted. Fast application: word ORDER."
+    ),
+}
 
 QUALIFICATION_QUESTIONS = {
     "budget": {
@@ -46,28 +61,38 @@ def render_welcome(language: str) -> str:
     if language == "en":
         return (
             "Welcome to Quixote.Dev!\n\n"
-            "I help with full-stack development and AI-powered automation.\n\n"
-            "How to use:\n"
-            "1. Send a text description of your project.\n"
-            "2. I will ask a few clarifying questions if needed.\n"
-            "3. Your message will be forwarded for review.\n\n"
+            "I do full-stack development and AI-powered automation.\n"
+            "Minimum order — $10, working hours 14:00–20:00 MSK, urgent projects accepted.\n\n"
+            "To get a faster answer, include in your first message:\n"
+            "1. What needs to be done: task, features, pages\n"
+            "2. Approximate budget\n"
+            "3. Timeline\n"
+            "4. Technology or platform preferences\n"
+            "5. Materials, if any (mockups, documents, examples)\n\n"
+            "Fast track: start your message with ORDER (or send /apply <text>) — "
+            "it goes straight to me, with no questions and no AI wait.\n\n"
             "Important:\n"
             "- Only TEXT messages are accepted.\n"
-            "- Files, photos, voice messages and other media — send directly in personal chat.\n"
-            "- Your text is processed by AI for faster response.\n\n"
+            "- Files, photos, voice messages and other media — later in personal chat.\n\n"
+            f"Portfolio and case studies: {PORTFOLIO_URL}\n\n"
             "Send your project description:"
         )
     return (
         "Добро пожаловать в Quixote.Dev!\n\n"
-        "Помогаю с фуллстек-разработкой и автоматизациями с участием ИИ.\n\n"
-        "Как работать:\n"
-        "1. Отправьте текстовое описание проекта.\n"
-        "2. При необходимости задам уточняющие вопросы.\n"
-        "3. Ваше сообщение будет переслано на рассмотрение.\n\n"
+        "Помогаю с фуллстек-разработкой и автоматизациями с участием ИИ.\n"
+        "Минимальный заказ — $10, работаю 14:00–20:00 по мск, срочные проекты — можно.\n\n"
+        "Чтобы получить ответ быстрее, сразу включите в сообщение:\n"
+        "1. Что нужно сделать: задача, функции, страницы\n"
+        "2. Примерный бюджет\n"
+        "3. Сроки\n"
+        "4. Предпочтения по технологиям или платформе\n"
+        "5. Материалы, если есть (макеты, документы, примеры)\n\n"
+        "Быстрая заявка: начните сообщение со слова ЗАКАЗ (или отправьте /apply <текст>) — "
+        "она уйдёт напрямую, без вопросов и ожидания ИИ.\n\n"
         "Важно:\n"
         "- Принимаются только ТЕКСТОВЫЕ сообщения.\n"
-        "- Файлы, фото, голосовые и другие медиа — отправляйте в личку при личном обсуждении.\n"
-        "- Ваш текст обрабатывается ИИ для более быстрого ответа.\n\n"
+        "- Файлы, фото, голосовые и другие медиа — позже, в личной переписке.\n\n"
+        f"Портфолио и примеры работ: {PORTFOLIO_URL}\n\n"
         "Отправьте описание проекта:"
     )
 
@@ -86,10 +111,22 @@ def render_media_instruction(language: str) -> str:
     )
 
 
+def render_portfolio(language: str) -> str:
+    if language == "en":
+        return f"Quixote.Dev portfolio and case studies:\n{PORTFOLIO_URL}"
+    return f"Портфолио и примеры работ Quixote.Dev:\n{PORTFOLIO_URL}"
+
+
 def render_processing(language: str) -> str:
     if language == "en":
         return "Processing your message..."
     return "Обрабатываю ваше сообщение..."
+
+
+def render_rate_limit(language: str) -> str:
+    if language == "en":
+        return "You are sending messages too quickly. Please wait a moment and try again."
+    return "Слишком много сообщений подряд. Подождите немного и попробуйте снова."
 
 
 def render_confirmation(language: str) -> str:
@@ -125,6 +162,8 @@ def render_owner_notification(
 ) -> str:
     client = f"@{username}" if username else str(user_id)
     category_tag = f"#{analysis.category}"
+    if len(source) > 3000:
+        source = source[:3000] + "…"
     risks = "\n".join(f"  - {r}" for r in analysis.risks) if analysis.risks else "  нет"
     questions_line = f"Задано вопросов: {questions_asked}" if questions_asked else ""
 
@@ -132,7 +171,7 @@ def render_owner_notification(
         f"Новая заявка от {client} (ID: {user_id})",
         f"Категория: {category_tag}",
         "",
-        f"Исходное сообщение:\n{source}",
+        f"Обращение клиента:\n{source}",
         "",
         f"Резюме: {analysis.summary}",
         f"Срочность: {analysis.urgency}",
@@ -141,10 +180,29 @@ def render_owner_notification(
         f"Риски:\n{risks}",
         f"Рекомендуемый ответ:\n{analysis.recommended_reply}",
     ]
+    if analysis.question:
+        lines.append(f"Вопрос от ИИ: {analysis.question}")
     if questions_line:
         lines.append("")
         lines.append(questions_line)
     return "\n".join(lines)
+
+
+def render_fast_track_notification(user_id: int, username: str | None, source: str) -> str:
+    client = f"@{username}" if username else str(user_id)
+    if len(source) > 3000:
+        source = source[:3000] + "…"
+    return (
+        f"Быстрая заявка от {client} (ID: {user_id})\n"
+        f"Категория: #готовое ТЗ\n\n"
+        f"Текст:\n{source}"
+    )
+
+
+def render_fast_track_usage(language: str) -> str:
+    if language == "en":
+        return "Add your application text after ORDER (or use /apply <text>)."
+    return "Добавьте описание заявки после слова ЗАКАЗ (или /apply <текст>)."
 
 
 def render_unread_header(count: int) -> str:

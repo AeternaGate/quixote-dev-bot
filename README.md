@@ -15,11 +15,12 @@ Telegram-бот для первичного сбора фриланс-заяво
 
 ```bash
 # 1. Клонируйте и установите зависимости
-pip install aiogram
+pip install -e ".[dev]"
 
 # 2. Создайте .env файл
 cp .env.example .env
-# Заполните BOT_TOKEN и OPENROUTER_API_KEY
+# Заполните BOT_TOKEN, OWNER_ID (ваш Telegram user_id) и OPENROUTER_API_KEY
+# Файл .env загружается автоматически при запуске
 
 # 3. Запустите
 python -m src.quixote_bot.main
@@ -29,6 +30,11 @@ python -m src.quixote_bot.main
 
 ### Клиентские
 - `/start` — начало диалога, выбор языка
+- `/apply <текст>` — быстрая заявка напрямую владельцу (без ИИ и вопросов)
+- Слово **ЗАКАЗ** в начале сообщения — то же самое, что /apply
+
+Приветствие после выбора языка содержит чек-лист из 5 пунктов (задача, бюджет, сроки,
+технологии, материалы) — если клиент пришлёт ответы сразу, уточняющие вопросы ИИ не понадобятся.
 
 ### Админские (только владелец)
 - `/new` — непрочитанные сообщения
@@ -42,6 +48,28 @@ python -m src.quixote_bot.main
 
 ```bash
 python -m pytest tests/ -v
+```
+
+## Безопасность
+
+- Секреты живут только в `.env` (git его игнорирует); шаблон — `.env.example`.
+- Pre-commit хук блокирует коммит `.env`, локальной БД и строк, похожих на токены:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+## Линт
+
+```bash
+ruff check src tests
+```
+
+## Запуск в Docker
+
+```bash
+docker build -t quixote-dev-bot .
+docker run -d --name quixote-dev-bot --env-file .env -v "$(pwd)/data:/app/data" quixote-dev-bot
 ```
 
 ## Архитектура

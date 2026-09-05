@@ -1,6 +1,6 @@
 import json
-import urllib.request
 import urllib.error
+import urllib.request
 from typing import Any
 
 
@@ -18,7 +18,7 @@ class OpenRouterClient:
                 {"role": "user", "content": user},
             ],
             "temperature": 0.3,
-            "max_tokens": 800,
+            "max_tokens": 1500,
         }).encode()
 
         req = urllib.request.Request(
