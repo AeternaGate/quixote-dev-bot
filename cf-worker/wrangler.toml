@@ -5,7 +5,10 @@ compatibility_date = "2025-09-01"
 [observability]
 enabled = true
 
+[vars]
+OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "quixote-bot"
-database_id = "SET_AFTER_D1_CREATE"
+database_id = "cb57d556-f275-4866-9081-b54161933b9e"
