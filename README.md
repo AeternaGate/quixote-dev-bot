@@ -61,6 +61,9 @@ git config core.hooksPath .githooks
 
 ## Деплой (бесплатно)
 
+- **Cloudflare Workers** — рекомендуемый вариант: без карты, без сна, 24/7.
+  TypeScript-порт бота в [cf-worker/](cf-worker/), инструкция —
+  [docs/deploy-cloudflare.md](docs/deploy-cloudflare.md)
 - **Serv00** — без карты, 24/7 через SSH + cron-надзор:
   [docs/deploy-serv00.md](docs/deploy-serv00.md)
 - **PythonAnywhere** — без карты, режим вебхуков:

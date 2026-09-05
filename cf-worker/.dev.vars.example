@@ -1,0 +1,7 @@
+# Локальные секреты для `wrangler dev` (в git не попадает).
+# На проде задаются через `wrangler secret put <ИМЯ>`.
+BOT_TOKEN=
+OPENROUTER_API_KEY=
+OWNER_ID=
+WEBHOOK_SECRET=
+OPENROUTER_MODEL=nvidia/nemotron-3-super-120b-a12b:free
