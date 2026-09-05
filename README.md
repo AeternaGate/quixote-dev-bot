@@ -61,7 +61,9 @@ git config core.hooksPath .githooks
 
 ## Деплой (бесплатно)
 
-- **PythonAnywhere** — без карты, 24/7, режим вебхуков:
+- **Serv00** — без карты, 24/7 через SSH + cron-надзор:
+  [docs/deploy-serv00.md](docs/deploy-serv00.md)
+- **PythonAnywhere** — без карты, режим вебхуков:
   [docs/deploy-pythonanywhere.md](docs/deploy-pythonanywhere.md)
 - **Oracle Cloud Always Free** — бесплатная VM, Docker Compose:
   [docs/deploy-oracle.md](docs/deploy-oracle.md)
